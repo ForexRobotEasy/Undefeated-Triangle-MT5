@@ -1,0 +1,98 @@
+
+// Program: Undefeated Triangle MT5
+// Developer: Forex Robot Easy Team
+// Site: forexroboteasy.com
+
+// Define input parameters
+input double LotSize = 0.01; // Trading lot size
+input double GridStep = 10; // Grid step size
+input double Martingale = 2; // Martingale multiplier
+input double StopLoss = 100; // Stop loss value
+input double TakeProfit = 200; // Take profit value
+
+// Define global variables
+int totalOrders = 0; // Total number of orders
+int totalProfit = 0; // Total profit in points
+
+// Define trading function
+void Trade()
+{
+   // Check for open positions
+   if (PositionsTotal() > 0)
+   {
+      // Loop through all open positions
+      for (int i = 0; i < PositionsTotal(); i++)
+      {
+         // Check if position is in profit
+         if (PositionGetDouble(POSITION_PROFIT) > 0)
+         {
+            // Close the position
+            OrderClose(PositionGetTicket(i), PositionGetDouble(POSITION_VOLUME), Bid, 5, clrGreen);
+            totalProfit += PositionGetInteger(POSITION_PROFIT);
+         }
+         else if (PositionGetDouble(POSITION_PROFIT) < 0)
+         {
+            // Calculate new lot size using martingale strategy
+            double newLotSize = PositionGetDouble(POSITION_VOLUME) * Martingale;
+            
+            // Modify the position with new lot size
+            OrderModify(PositionGetTicket(i), 0, newLotSize, 0, 0, clrRed);
+         }
+      }
+   }
+   else
+   {
+      // Check for previous orders
+      if (totalOrders > 0)
+      {
+         // Calculate grid level
+         double gridLevel = totalOrders * GridStep;
+         
+         // Buy AUD/CAD at grid level
+         OrderSend('AUDCAD', OP_BUY, LotSize, Ask + gridLevel, 5, Bid - StopLoss, Bid + TakeProfit, 'Undefeated Triangle MT5', MagicNumber);
+         
+         // Sell AUD/NZD at grid level
+         OrderSend('AUDNZD', OP_SELL, LotSize, Ask + gridLevel, 5, Bid - StopLoss, Bid + TakeProfit, 'Undefeated Triangle MT5', MagicNumber);
+         
+         // Buy NZD/CAD at grid level
+         OrderSend('NZDCAD', OP_BUY, LotSize, Ask + gridLevel, 5, Bid - StopLoss, Bid + TakeProfit, 'Undefeated Triangle MT5', MagicNumber);
+         
+         // Increase total orders count
+         totalOrders++;
+      }
+      else
+      {
+         // Buy AUD/CAD
+         OrderSend('AUDCAD', OP_BUY, LotSize, Ask, 5, Bid - StopLoss, Bid + TakeProfit, 'Undefeated Triangle MT5', MagicNumber);
+         
+         // Sell AUD/NZD
+         OrderSend('AUDNZD', OP_SELL, LotSize, Ask, 5, Bid - StopLoss, Bid + TakeProfit, 'Undefeated Triangle MT5', MagicNumber);
+         
+         // Buy NZD/CAD
+         OrderSend('NZDCAD', OP_BUY, LotSize, Ask, 5, Bid - StopLoss, Bid + TakeProfit, 'Undefeated Triangle MT5', MagicNumber);
+         
+         // Increase total orders count
+         totalOrders++;
+      }
+   }
+}
+
+// Define monitoring function
+void Monitor()
+{
+   // Print total profit
+   Print('Total Profit: ', totalProfit, ' points');
+   
+   // Print total orders
+   Print('Total Orders: ', totalOrders);
+}
+
+// Define main program
+void OnTick()
+{
+   // Call trading function
+   Trade();
+   
+   // Call monitoring function
+   Monitor();
+}
